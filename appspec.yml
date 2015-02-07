@@ -1,0 +1,16 @@
+version: 0.0
+os: linux 
+files:
+  - source: /
+    destination: /home/ec2-user/
+permissions:
+  - object: /home/ec2-user/
+    pattern: "**"
+    owner: ec2-user
+    group: ec2-user
+    mode: 755
+hooks:
+  AfterInstall:
+    - location: ./setupCronRsCopy.sh    
+      timeout: 180
+      runas: ec2-user
