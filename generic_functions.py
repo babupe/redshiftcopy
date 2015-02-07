@@ -251,7 +251,7 @@ def createNewStreamingJob(dynamodb_conn,configValues):
     else:
         dict_subnet = {}
     try:
-        jobid = emr_conn.run_jobflow(name=configValues['jobflowName'],log_uri=configValues['logS3Uri'],steps=[],action_on_failure='CANCEL_AND_WAIT',master_instance_type=configValues['masterInstanceType'], slave_instance_type=configValues['slaveInstanceType'],num_instances=int(configValues['numInstances']),ami_version=configValues['amiVersion'],keep_alive=True,job_flow_role=configValues['jobFlowRole'],service_role=configValues['serviceRole'],ec2_keyname=configValues['ec2KeyName'],api_params = dict_subnet,visible_to_all_users=True)
+        jobid = emr_conn.run_jobflow(name=configValues['jobflowName'],log_uri=configValues['logS3Uri'],steps=[],action_on_failure='CANCEL_AND_WAIT',master_instance_type=configValues['masterInstanceType'], slave_instance_type=configValues['slaveInstanceType'],num_instances=int(configValues['numInstances']),ami_version=configValues['amiVersion'],keep_alive=True,enable_debugging=True,job_flow_role=configValues['jobFlowRole'],service_role=configValues['serviceRole'],ec2_keyname=configValues['ec2KeyName'],api_params = dict_subnet,visible_to_all_users=True)
     except:
         return 2
     emr_conn.set_termination_protection(jobid,True)
@@ -280,10 +280,15 @@ def createNewStreamingJob(dynamodb_conn,configValues):
 
 def check_cluster_running(emr_conn,jobid):
     status = emr_conn.describe_jobflow(jobid)
-    while str(status.__dict__['state']) not in ('RUNNING','WAITING'):
+    retry_counter = 1
+    while str(status.__dict__['state']) not in ('RUNNING','WAITING') and retry_counter < 10:
         logger.info('Cluster not yet ready for use!! Sleeping to recheck again in a few!!!')
         sleep(20)
+	retry_counter += 1
         status = emr_conn.describe_jobflow(jobid)
+    if str(status.__dict__['state']) not in ('RUNNING','WAITING'):
+	logger.info('Cluster not yet ready for use!! Quitting to retry again in a few!')
+	sys.exit(0)
     logger.info('Cluster with job Id '+jobid+' ready for use!!!')
     return str(status.__dict__['state'])
 
